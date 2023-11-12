@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booksaw-deployment
+  labels:
+    app: website
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: website
+  
+  template:
+    metadata:
+      name: booksaw-website
+      labels:
+        app: website
+    spec:
+      containers:
+      - name: booksaw-web-server
+        image: abdelkefiismail/book-saw:dark-theme
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+
+    

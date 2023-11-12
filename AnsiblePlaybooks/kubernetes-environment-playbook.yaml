@@ -1,0 +1,54 @@
+---
+- name: Installing and Configuring Azure Package
+  hosts: localhost
+  gather_facts: no
+  become: yes
+  vars_files:
+    - /vars.yaml
+  tasks:
+    - name: Update APT package cache
+      shell: apt-get update
+
+    - name: Install dependencies
+      shell: apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+
+    - name: Create keyrings directory
+      shell: mkdir -p /etc/apt/keyrings
+
+    - name: Check if the file exists
+      stat:
+        path: /etc/apt/keyrings/microsoft.gpg
+      register: file_stat
+
+    - name: Perform a task if the file exists
+      debug:
+        msg: "The file exists!"
+      when: file_stat.stat.exists
+
+    - name: Perform a different task if the file does not exist
+      shell: curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+      when: not file_stat.stat.exists
+    
+    - name: Changing file Permissions
+      shell: chmod go+r /etc/apt/keyrings/microsoft.gpg
+
+    - name: Add Docker repository to Apt sources
+      shell: |
+        AZ_DIST=$(lsb_release -cs)
+        echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_DIST main" 
+        tee /etc/apt/sources.list.d/azure-cli.list
+
+    - name: Update APT package cache after adding the repository
+      shell: apt-get update
+
+    - name: Install Docker and Dependencies
+      shell: apt-get install azure-cli
+    
+    - name: Connect To Azure 
+      shell: az login --username "{{ username }}" --password "{{ password }}" --tenant "{{ tenant }}" 
+
+    - name: Setting Azure Subscription
+      shell: az account set --subscription "{{ subscription }}"
+
+    - name: Downloading AKS Cluster Kubeconfig
+      shell: az aks get-credentials --resource-group demo --name KubernetesLab
